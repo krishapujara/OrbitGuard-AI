@@ -1,0 +1,17 @@
+# Compatibility note: development used Python 3.13.5 (Anaconda).
+# The specification requested 3.11 or 3.12; those interpreters were not
+# installed on the implementation machine. Packages below were installed
+# and exercised on 3.13.5. Pin versions after `pip freeze` verification.
+streamlit==1.51.0
+numpy==2.2.6
+pandas==2.3.3
+scipy==1.16.2
+sgp4==2.25
+requests==2.32.5
+plotly==6.3.1
+scikit-learn==1.7.2
+joblib==1.5.2
+pytest==8.4.2
+pydantic==2.12.3
+python-dotenv==1.1.1
+python-dateutil==2.9.0.post0

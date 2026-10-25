@@ -1,0 +1,350 @@
+{
+  "trusted_origin": "orbitalguard-ai-local",
+  "model_type": "LogisticRegression",
+  "training_dataset_version": "proxy_dataset.csv",
+  "target_definition": "below_threshold_proxy",
+  "target_description": "Proxy label: refined SGP4 miss distance <= screening threshold. Not a real-world collision probability.",
+  "feature_schema": [
+    "target_inclination_deg",
+    "candidate_inclination_deg",
+    "rel_inclination_deg",
+    "target_eccentricity",
+    "candidate_eccentricity",
+    "target_mean_motion",
+    "candidate_mean_motion",
+    "rel_mean_motion",
+    "target_altitude_km",
+    "candidate_altitude_km",
+    "rel_altitude_km",
+    "epoch_separation_km",
+    "epoch_relative_speed_km_s",
+    "target_age_hours",
+    "candidate_age_hours",
+    "forecast_horizon_hours",
+    "sample_interval_seconds"
+  ],
+  "preprocessing": "SimpleImputer(median)+StandardScaler fitted on training groups only",
+  "split": {
+    "protocol": "grouped_chronological_holdout",
+    "group_col": "candidate_id",
+    "time_col": "target_epoch_utc",
+    "n_groups": 60,
+    "unique_group_epochs": 1,
+    "train_groups": 36,
+    "val_groups": 12,
+    "test_groups": 12,
+    "seed": 42,
+    "single_snapshot_limitation": true,
+    "note": "If unique_group_epochs is 1, timestamps do not provide a true future test window; grouping still prevents the same candidate from appearing in multiple splits."
+  },
+  "metrics": {
+    "validation": {
+      "ml": {
+        "n": 36,
+        "prevalence_positive": 0.6111111111111112,
+        "accuracy": 0.6388888888888888,
+        "precision": 0.7647058823529411,
+        "recall": 0.5909090909090909,
+        "f1": 0.6666666666666666,
+        "confusion_matrix_labels": [
+          0,
+          1
+        ],
+        "confusion_matrix": [
+          [
+            10,
+            4
+          ],
+          [
+            9,
+            13
+          ]
+        ],
+        "accuracy_note": "Accuracy is misleading for rare-event labels; prefer precision, recall, F1, and PR-AUC when prevalence is low.",
+        "roc_auc": 0.7987012987012987,
+        "pr_auc": 0.8510210883065572,
+        "brier": 0.17876351414307018,
+        "log_loss": 0.5195148178336969
+      },
+      "dummy_majority": {
+        "n": 36,
+        "prevalence_positive": 0.6111111111111112,
+        "accuracy": 0.3888888888888889,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "confusion_matrix_labels": [
+          0,
+          1
+        ],
+        "confusion_matrix": [
+          [
+            14,
+            0
+          ],
+          [
+            22,
+            0
+          ]
+        ],
+        "accuracy_note": "Accuracy is misleading for rare-event labels; prefer precision, recall, F1, and PR-AUC when prevalence is low.",
+        "roc_auc": null,
+        "pr_auc": null,
+        "brier": null,
+        "log_loss": null
+      },
+      "physical_epoch_threshold": {
+        "n": 36,
+        "prevalence_positive": 0.6111111111111112,
+        "accuracy": 0.4444444444444444,
+        "precision": 1.0,
+        "recall": 0.09090909090909091,
+        "f1": 0.16666666666666666,
+        "confusion_matrix_labels": [
+          0,
+          1
+        ],
+        "confusion_matrix": [
+          [
+            14,
+            0
+          ],
+          [
+            20,
+            2
+          ]
+        ],
+        "accuracy_note": "Accuracy is misleading for rare-event labels; prefer precision, recall, F1, and PR-AUC when prevalence is low.",
+        "roc_auc": null,
+        "pr_auc": null,
+        "brier": null,
+        "log_loss": null
+      },
+      "majority_constant": {
+        "n": 36,
+        "prevalence_positive": 0.6111111111111112,
+        "accuracy": 0.6111111111111112,
+        "precision": 0.6111111111111112,
+        "recall": 1.0,
+        "f1": 0.7586206896551724,
+        "confusion_matrix_labels": [
+          0,
+          1
+        ],
+        "confusion_matrix": [
+          [
+            0,
+            14
+          ],
+          [
+            0,
+            22
+          ]
+        ],
+        "accuracy_note": "Accuracy is misleading for rare-event labels; prefer precision, recall, F1, and PR-AUC when prevalence is low.",
+        "roc_auc": null,
+        "pr_auc": null,
+        "brier": null,
+        "log_loss": null
+      }
+    },
+    "test": {
+      "ml": {
+        "n": 36,
+        "prevalence_positive": 0.5833333333333334,
+        "accuracy": 0.5833333333333334,
+        "precision": 0.6363636363636364,
+        "recall": 0.6666666666666666,
+        "f1": 0.6511627906976745,
+        "confusion_matrix_labels": [
+          0,
+          1
+        ],
+        "confusion_matrix": [
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            14
+          ]
+        ],
+        "accuracy_note": "Accuracy is misleading for rare-event labels; prefer precision, recall, F1, and PR-AUC when prevalence is low.",
+        "roc_auc": 0.6126984126984127,
+        "pr_auc": 0.6490270294898921,
+        "brier": 0.24857792811221957,
+        "log_loss": 0.7389222542694684
+      },
+      "dummy_majority": {
+        "n": 36,
+        "prevalence_positive": 0.5833333333333334,
+        "accuracy": 0.4166666666666667,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "confusion_matrix_labels": [
+          0,
+          1
+        ],
+        "confusion_matrix": [
+          [
+            15,
+            0
+          ],
+          [
+            21,
+            0
+          ]
+        ],
+        "accuracy_note": "Accuracy is misleading for rare-event labels; prefer precision, recall, F1, and PR-AUC when prevalence is low.",
+        "roc_auc": null,
+        "pr_auc": null,
+        "brier": null,
+        "log_loss": null
+      },
+      "physical_epoch_threshold": {
+        "n": 36,
+        "prevalence_positive": 0.5833333333333334,
+        "accuracy": 0.4166666666666667,
+        "precision": 0.5,
+        "recall": 0.047619047619047616,
+        "f1": 0.08695652173913043,
+        "confusion_matrix_labels": [
+          0,
+          1
+        ],
+        "confusion_matrix": [
+          [
+            14,
+            1
+          ],
+          [
+            20,
+            1
+          ]
+        ],
+        "accuracy_note": "Accuracy is misleading for rare-event labels; prefer precision, recall, F1, and PR-AUC when prevalence is low.",
+        "roc_auc": null,
+        "pr_auc": null,
+        "brier": null,
+        "log_loss": null
+      },
+      "majority_constant": {
+        "n": 36,
+        "prevalence_positive": 0.5833333333333334,
+        "accuracy": 0.5833333333333334,
+        "precision": 0.5833333333333334,
+        "recall": 1.0,
+        "f1": 0.7368421052631579,
+        "confusion_matrix_labels": [
+          0,
+          1
+        ],
+        "confusion_matrix": [
+          [
+            0,
+            15
+          ],
+          [
+            0,
+            21
+          ]
+        ],
+        "accuracy_note": "Accuracy is misleading for rare-event labels; prefer precision, recall, F1, and PR-AUC when prevalence is low.",
+        "roc_auc": null,
+        "pr_auc": null,
+        "brier": null,
+        "log_loss": null
+      }
+    }
+  },
+  "feature_coefficients": [
+    {
+      "feature": "epoch_separation_km",
+      "coefficient": -0.9316688959038515
+    },
+    {
+      "feature": "epoch_relative_speed_km_s",
+      "coefficient": -0.6643626756709244
+    },
+    {
+      "feature": "candidate_eccentricity",
+      "coefficient": 0.5822855628987853
+    },
+    {
+      "feature": "candidate_inclination_deg",
+      "coefficient": 0.25009818544875334
+    },
+    {
+      "feature": "rel_inclination_deg",
+      "coefficient": -0.15994717415695697
+    },
+    {
+      "feature": "target_mean_motion",
+      "coefficient": -0.07904993507760165
+    },
+    {
+      "feature": "target_eccentricity",
+      "coefficient": 0.06635135109250034
+    },
+    {
+      "feature": "rel_mean_motion",
+      "coefficient": -0.0657997687660379
+    },
+    {
+      "feature": "rel_altitude_km",
+      "coefficient": 0.06151226053345521
+    },
+    {
+      "feature": "candidate_altitude_km",
+      "coefficient": 0.05164349412262121
+    },
+    {
+      "feature": "candidate_mean_motion",
+      "coefficient": 0.04989391906285228
+    },
+    {
+      "feature": "target_altitude_km",
+      "coefficient": -0.04411686486771618
+    },
+    {
+      "feature": "target_inclination_deg",
+      "coefficient": -0.04174707031063808
+    },
+    {
+      "feature": "candidate_age_hours",
+      "coefficient": -0.029071888193582068
+    },
+    {
+      "feature": "target_age_hours",
+      "coefficient": 0.011960538216618397
+    },
+    {
+      "feature": "forecast_horizon_hours",
+      "coefficient": 0.0
+    },
+    {
+      "feature": "sample_interval_seconds",
+      "coefficient": 0.0
+    }
+  ],
+  "random_seed": 42,
+  "library_versions": {
+    "python": "3.13.5",
+    "sklearn": "1.6.1",
+    "numpy": "2.1.3",
+    "pandas": "2.2.3"
+  },
+  "training_timestamp": "2026-10-14T05:58:08.909049+00:00",
+  "limitations": [
+    "Labels are generated from SGP4 of the same snapshot, so the model approximates screening, not observed collisions.",
+    "A single snapshot cannot support true future-event validation.",
+    "Predicted scores are not calibrated collision probabilities."
+  ],
+  "ml_improves_physical_baseline": {
+    "f1_delta": 0.5642062689585441,
+    "claim": "Compare F1/PR-AUC on the grouped test set. Improvement is claimed only when the ML F1 exceeds the physical epoch-threshold baseline on that held-out set.",
+    "ml_f1_gt_physical_f1": true
+  }
+}
