@@ -174,3 +174,30 @@ def test_streamlit_app_ui_navigation_and_screening():
     at.sidebar.radio[0].set_value("Data and system health")
     at.run()
     assert len(at.exception) == 0
+
+
+def test_satellite_selection_fallback_on_network_failure():
+    from streamlit.testing.v1 import AppTest
+    from backend.exceptions import DataSourceError
+
+    at = AppTest.from_file(r"app.py", default_timeout=30)
+    at.run()
+
+    # Navigate to Satellite selection
+    at.sidebar.radio[0].set_value("Satellite selection")
+    at.run()
+
+    # Mock fetch_group to simulate CelesTrak timeout
+    def mock_fetch_group(*args, **kwargs):
+        raise DataSourceError("CelesTrak connection timed out (6.0s). Upstream server may be rate-limiting cloud datacenter IP addresses.")
+
+    at.session_state["data_source"].fetch_group = mock_fetch_group
+
+    load_group_btn = next((b for b in at.button if "load catalog group" in (b.label or "").lower()), None)
+    assert load_group_btn is not None
+    load_group_btn.click()
+    at.run()
+    assert len(at.exception) == 0
+    assert any("timed out" in err.value.lower() for err in at.error)
+    # Fallback options are rendered
+    assert any("offline" in (b.label or "").lower() for b in at.button)

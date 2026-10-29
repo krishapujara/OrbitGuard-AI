@@ -20,6 +20,13 @@ def _int(name: str, default: int) -> int:
     return int(raw)
 
 
+def _float(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return default
+    return float(raw)
+
+
 @dataclass(frozen=True)
 class Settings:
     app_name: str = "OrbitalGuard AI"
@@ -32,9 +39,23 @@ class Settings:
         )
     )
     request_timeout_seconds: int = field(
-        default_factory=lambda: _int("REQUEST_TIMEOUT_SECONDS", 30)
+        default_factory=lambda: _int("REQUEST_TIMEOUT_SECONDS", 25)
     )
-    max_retries: int = 3
+    connect_timeout_seconds: float = field(
+        default_factory=lambda: _float("CONNECT_TIMEOUT_SECONDS", 6.0)
+    )
+    read_timeout_seconds: float = field(
+        default_factory=lambda: _float("READ_TIMEOUT_SECONDS", 20.0)
+    )
+    user_agent: str = field(
+        default_factory=lambda: os.getenv(
+            "CELESTRAK_USER_AGENT",
+            "OrbitalGuardAI/0.1.0 (Space Situational Awareness Engine; +https://orbitguardai.streamlit.app/)",
+        )
+    )
+    max_retries: int = field(
+        default_factory=lambda: _int("MAX_RETRIES", 2)
+    )
     retry_backoff_seconds: float = 1.5
     cache_ttl_seconds: int = field(
         default_factory=lambda: _int("CACHE_TTL_SECONDS", 6 * 3600)

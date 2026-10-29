@@ -1,4 +1,4 @@
-"""CelesTrak GP client with retries, caching, and provenance.
+"""CelesTrak GP client with retries, caching, provenance, and resilient offline fallbacks.
 
 Documented query interface (Kelso, CelesTrak GP data formats):
 https://celestrak.org/NORAD/elements/gp.php?{QUERY}=VALUE[&FORMAT=VALUE]
@@ -40,7 +40,22 @@ class DataSourceService:
         validator: TLEValidationService | None = None,
     ) -> None:
         self.settings = settings or get_settings()
-        self.session = session or requests.Session()
+        if session is not None:
+            self.session = session
+        else:
+            self.session = requests.Session()
+            user_agent = getattr(
+                self.settings,
+                "user_agent",
+                "OrbitalGuardAI/0.1.0 (Space Situational Awareness Engine; +https://orbitguardai.streamlit.app/)",
+            )
+            self.session.headers.update(
+                {
+                    "User-Agent": user_agent,
+                    "Accept": "text/plain, */*",
+                    "Accept-Encoding": "gzip, deflate",
+                }
+            )
         self.validator = validator or TLEValidationService()
 
     def search_by_name(self, name: str, *, refresh: bool = False) -> list[OrbitalRecord]:
@@ -106,26 +121,63 @@ class DataSourceService:
     def _http_get(self, url: str) -> str:
         delay = self.settings.retry_backoff_seconds
         last_error: Exception | None = None
-        for attempt in range(self.settings.max_retries + 1):
+        connect_to = getattr(self.settings, "connect_timeout_seconds", 6.0)
+        read_to = getattr(self.settings, "read_timeout_seconds", 20.0)
+        timeout_tuple = (connect_to, read_to)
+        max_retries = getattr(self.settings, "max_retries", 2)
+
+        for attempt in range(max_retries + 1):
             try:
-                response = self.session.get(url, timeout=self.settings.request_timeout_seconds)
-            except requests.Timeout as exc:
+                response = self.session.get(url, timeout=timeout_tuple)
+            except requests.exceptions.ConnectTimeout as exc:
                 last_error = exc
-                log_event("warning", "celestrak_timeout", url=url, attempt=attempt)
-                if attempt >= self.settings.max_retries:
+                log_event("warning", "celestrak_connect_timeout", url=url, attempt=attempt)
+                if attempt >= max_retries:
                     raise DataSourceError(
-                        "CelesTrak request timed out. Check network connectivity and retry."
+                        f"CelesTrak connection timed out ({connect_to:.1f}s). Upstream server may be rate-limiting "
+                        "cloud datacenter IP addresses (common on Streamlit Cloud). You can load the bundled sample "
+                        "or offline cached catalog to continue uninterrupted."
                     ) from exc
                 time.sleep(delay)
                 delay *= 2
                 continue
-            except requests.ConnectionError as exc:
+            except requests.exceptions.ReadTimeout as exc:
+                last_error = exc
+                log_event("warning", "celestrak_read_timeout", url=url, attempt=attempt)
+                if attempt >= max_retries:
+                    raise DataSourceError(
+                        f"CelesTrak read timed out ({read_to:.1f}s) while downloading catalog data. "
+                        "The upstream server is responding slowly. Please retry or use offline sample data."
+                    ) from exc
+                time.sleep(delay)
+                delay *= 2
+                continue
+            except requests.exceptions.Timeout as exc:
+                last_error = exc
+                log_event("warning", "celestrak_timeout", url=url, attempt=attempt)
+                if attempt >= max_retries:
+                    raise DataSourceError(
+                        "CelesTrak request timed out. Check network connectivity or use offline sample data."
+                    ) from exc
+                time.sleep(delay)
+                delay *= 2
+                continue
+            except requests.exceptions.ConnectionError as exc:
                 last_error = exc
                 log_event("warning", "celestrak_connection_error", url=url, attempt=attempt)
-                if attempt >= self.settings.max_retries:
+                err_str = str(exc).lower()
+                dns_error = any(
+                    kw in err_str
+                    for kw in ("getaddrinfo failed", "nameresolutionerror", "name or service not known")
+                )
+                if attempt >= max_retries:
+                    if dns_error:
+                        raise DataSourceError(
+                            "DNS lookup failed for celestrak.org. Check internet access or use offline sample data."
+                        ) from exc
                     raise DataSourceError(
-                        "Could not connect to CelesTrak. Check internet access and try again. "
-                        "Previously cached catalogs remain usable if shown as cached."
+                        "Could not connect to CelesTrak. Connection was refused or dropped. "
+                        "Check internet access or use offline sample data."
                     ) from exc
                 time.sleep(delay)
                 delay *= 2
@@ -134,7 +186,7 @@ class DataSourceService:
             if status in PERMANENT_STATUS:
                 raise DataSourceError(f"CelesTrak returned HTTP {status} for {url}.")
             if status == 429:
-                if attempt >= self.settings.max_retries:
+                if attempt >= max_retries:
                     raise RateLimitedError(
                         "CelesTrak rate-limited the request. Wait before refreshing catalogs."
                     )
@@ -145,7 +197,7 @@ class DataSourceService:
                 continue
             if status in TRANSIENT_STATUS:
                 last_error = DataSourceError(f"HTTP {status}")
-                if attempt >= self.settings.max_retries:
+                if attempt >= max_retries:
                     raise DataSourceError(f"CelesTrak returned HTTP {status} after retries.")
                 time.sleep(delay)
                 delay *= 2
@@ -159,6 +211,114 @@ class DataSourceService:
                 return ""
             return text
         raise DataSourceError(f"CelesTrak request failed: {last_error}")
+
+    def find_offline_snapshot(self, group_or_query: str) -> Optional[dict[str, Any]]:
+        """Locate an existing local offline snapshot for this group or query on disk.
+
+        Checks data/cache, data/raw, data/historical, and data/sample_metadata.
+        """
+        group_norm = group_or_query.strip().lower()
+        now = datetime.now(timezone.utc)
+
+        # 1. Check data/cache metadata
+        for meta_path in sorted(self.settings.data_cache.glob("*.json")):
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                params = meta.get("params", {})
+                grp = params.get("GROUP", "").lower()
+                catnr = params.get("CATNR", "").lower()
+                name = params.get("NAME", "").lower()
+                if group_norm in (grp, catnr, name):
+                    tle_path = meta_path.with_suffix(".tle")
+                    if tle_path.exists() and tle_path.stat().st_size > 0:
+                        retrieved = datetime.fromisoformat(meta["retrieved_at"])
+                        age_h = (now - retrieved).total_seconds() / 3600.0
+                        return {
+                            "source_type": "disk_cache",
+                            "path": tle_path,
+                            "retrieved_at": retrieved,
+                            "age_hours": age_h,
+                            "group": group_norm,
+                            "sha256": meta.get("sha256"),
+                            "description": f"Cached snapshot from {retrieved.strftime('%Y-%m-%d %H:%M UTC')} ({age_h:.1f}h old)",
+                        }
+            except (OSError, ValueError, KeyError):
+                continue
+
+        # 2. Check data/raw for raw snapshots
+        raw_matches = sorted(self.settings.data_raw.glob(f"{group_norm}_*.tle"), reverse=True)
+        if raw_matches:
+            best_raw = raw_matches[0]
+            if best_raw.stat().st_size > 0:
+                mtime = datetime.fromtimestamp(best_raw.stat().st_mtime, tz=timezone.utc)
+                age_h = (now - mtime).total_seconds() / 3600.0
+                return {
+                    "source_type": "raw_archive",
+                    "path": best_raw,
+                    "retrieved_at": mtime,
+                    "age_hours": age_h,
+                    "group": group_norm,
+                    "sha256": hashlib.sha256(best_raw.read_bytes()).hexdigest(),
+                    "description": f"Raw catalog snapshot from {mtime.strftime('%Y-%m-%d %H:%M UTC')} ({age_h:.1f}h old)",
+                }
+
+        # 3. Check data/historical
+        hist_matches = sorted(self.settings.data_historical.glob(f"{group_norm}_*.tle"), reverse=True)
+        if hist_matches:
+            best_hist = hist_matches[0]
+            if best_hist.stat().st_size > 0:
+                mtime = datetime.fromtimestamp(best_hist.stat().st_mtime, tz=timezone.utc)
+                age_h = (now - mtime).total_seconds() / 3600.0
+                return {
+                    "source_type": "historical",
+                    "path": best_hist,
+                    "retrieved_at": mtime,
+                    "age_hours": age_h,
+                    "group": group_norm,
+                    "sha256": hashlib.sha256(best_hist.read_bytes()).hexdigest(),
+                    "description": f"Historical snapshot from {mtime.strftime('%Y-%m-%d %H:%M UTC')} ({age_h:.1f}h old)",
+                }
+
+        # 4. Check bundled sample catalog as universal fallback
+        sample_path = self.settings.project_root / "data" / "sample_metadata" / "sample_catalog.tle"
+        if sample_path.exists() and sample_path.stat().st_size > 0:
+            mtime = datetime.fromtimestamp(sample_path.stat().st_mtime, tz=timezone.utc)
+            return {
+                "source_type": "bundled_sample",
+                "path": sample_path,
+                "retrieved_at": mtime,
+                "age_hours": 0.0,
+                "group": "bundled-sample",
+                "sha256": hashlib.sha256(sample_path.read_bytes()).hexdigest(),
+                "description": "Bundled offline sample catalog (historical demonstration elements)",
+            }
+
+        return None
+
+    def load_offline_snapshot(self, snapshot_info: dict[str, Any]) -> tuple[list[OrbitalRecord], list[dict[str, str]]]:
+        """Load and parse an offline snapshot with complete provenance tracking."""
+        path: Path = snapshot_info["path"]
+        text = path.read_text(encoding="utf-8")
+        retrieved_at = snapshot_info["retrieved_at"]
+        source_label = f"offline:{snapshot_info['source_type']}:{path.name}"
+        records, issues = self.validator.parse_text(
+            text,
+            source=source_label,
+            retrieved_at=retrieved_at,
+            source_url=None,
+            from_cache=True,
+        )
+        for rec in records:
+            rec.cache_retrieved_at = retrieved_at
+        log_event(
+            "info",
+            "offline_snapshot_loaded",
+            source_type=snapshot_info["source_type"],
+            path=str(path),
+            records=len(records),
+            issues=len(issues),
+        )
+        return records, issues
 
     def cache_path(self, url: str) -> Path:
         digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]

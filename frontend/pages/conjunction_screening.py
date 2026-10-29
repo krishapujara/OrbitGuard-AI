@@ -89,7 +89,7 @@ def render() -> None:
         return
     col_f1, col_f2 = st.columns([2, 1])
     with col_f1:
-        cand_search = st.text_input("Filter candidates by name or catalog ID", "")
+        cand_search = st.text_input("Filter candidates by name or catalog ID", "", autocomplete="off")
     with col_f2:
         only_flagged = st.checkbox("Only show within-threshold flags")
 

@@ -24,6 +24,45 @@ div[data-testid="stMetricValue"] { color: #4cc9f0; }
 </style>
 """
 
+DOM_COMPLIANCE_SCRIPT = """
+<script>
+(function() {
+    function ensureCompliance() {
+        var inputs = document.querySelectorAll('input, select, textarea');
+        inputs.forEach(function(el, idx) {
+            var auto = el.getAttribute('autocomplete');
+            if (!auto || auto.trim() === '' || auto === 'null') {
+                el.setAttribute('autocomplete', 'off');
+            }
+            if (!el.getAttribute('name')) {
+                var fieldId = el.getAttribute('id') || ('st_field_' + idx);
+                el.setAttribute('name', fieldId);
+            }
+            if (!el.getAttribute('id')) {
+                el.setAttribute('id', 'input_elem_' + idx);
+            }
+            if (!el.getAttribute('aria-label') && (!el.labels || el.labels.length === 0)) {
+                var placeholder = el.getAttribute('placeholder') || '';
+                var parentContainer = el.closest('[data-testid]') || el.parentElement;
+                var nearbyLabel = parentContainer ? parentContainer.querySelector('label') : null;
+                var labelText = nearbyLabel ? nearbyLabel.innerText : '';
+                el.setAttribute('aria-label', labelText || placeholder || el.name || 'input control');
+            }
+        });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', ensureCompliance);
+    } else {
+        ensureCompliance();
+    }
+    var observer = new MutationObserver(function() {
+        ensureCompliance();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+})();
+</script>
+"""
+
 PAGES = {
     "Mission overview": overview.render,
     "Satellite selection": satellite_selection.render,
@@ -37,14 +76,15 @@ PAGES = {
 
 def run() -> None:
     settings = get_settings()
-    st.set_page_config(page_title=settings.app_name, layout="wide", page_icon="🛰️")
+    st.set_page_config(page_title=settings.app_name, layout="wide", page_icon="???")
     st.markdown(CSS, unsafe_allow_html=True)
+    st.html(DOM_COMPLIANCE_SCRIPT)
     if "data_source" not in st.session_state:
         st.session_state["data_source"] = DataSourceService(settings)
     st.sidebar.title(settings.app_name)
     st.sidebar.caption(
-        "Research prototype — geometric screening, not certified collision avoidance. "
-        "Offline path: Satellite selection → Load bundled sample."
+        "Research prototype ? geometric screening, not certified collision avoidance. "
+        "Offline path: Satellite selection ? Load bundled sample."
     )
     page = st.sidebar.radio("Navigate", list(PAGES.keys()))
     st.sidebar.markdown(
