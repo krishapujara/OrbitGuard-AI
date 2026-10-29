@@ -39,18 +39,18 @@ class Settings:
         )
     )
     request_timeout_seconds: int = field(
-        default_factory=lambda: _int("REQUEST_TIMEOUT_SECONDS", 25)
+        default_factory=lambda: _int("REQUEST_TIMEOUT_SECONDS", 30)
     )
     connect_timeout_seconds: float = field(
-        default_factory=lambda: _float("CONNECT_TIMEOUT_SECONDS", 6.0)
+        default_factory=lambda: _float("CONNECT_TIMEOUT_SECONDS", 15.0)
     )
     read_timeout_seconds: float = field(
-        default_factory=lambda: _float("READ_TIMEOUT_SECONDS", 20.0)
+        default_factory=lambda: _float("READ_TIMEOUT_SECONDS", 30.0)
     )
     user_agent: str = field(
         default_factory=lambda: os.getenv(
             "CELESTRAK_USER_AGENT",
-            "OrbitalGuardAI/0.1.0 (Space Situational Awareness Engine; +https://orbitguardai.streamlit.app/)",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 (compatible; OrbitalGuardAI/0.1.0; +https://orbitguardai.streamlit.app/)",
         )
     )
     max_retries: int = field(
@@ -81,10 +81,10 @@ class Settings:
     ml_artifacts: Path = PROJECT_ROOT / "ml" / "artifacts"
     catalog_groups: tuple[str, ...] = (
         "stations",
+        "science",
         "visual",
         "active",
         "weather",
-        "science",
         "cubesat",
         "starlink",
         "oneweb",
@@ -94,9 +94,8 @@ class Settings:
         "education",
         "military",
         "radar",
-        "debris",
-        "iridium-33-debris",
         "cosmos-2251-debris",
+        "iridium-33-debris",
         "fengyun-1c-debris",
     )
 

@@ -1,0 +1,9 @@
+{
+  "group": "weather",
+  "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=weather&FORMAT=TLE",
+  "retrieved_at": "2026-10-29T03:13:39.553194+00:00",
+  "sha256": "65f3ea05d1067110c01ebf7314feb33f9c8fb721d6bc8dfe56a6bdf93bb82ce8",
+  "n_bytes": 12264,
+  "line_count": 219,
+  "source": "Official CelesTrak GP API Snapshot"
+}

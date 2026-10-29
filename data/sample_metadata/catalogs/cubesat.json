@@ -1,0 +1,9 @@
+{
+  "group": "cubesat",
+  "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=cubesat&FORMAT=TLE",
+  "retrieved_at": "2026-10-29T03:14:01.156586+00:00",
+  "sha256": "91b8dcba9f55d63472932e14b96f28feda80000543ba502a2e1dbb8c972ea34f",
+  "n_bytes": 14112,
+  "line_count": 252,
+  "source": "Official CelesTrak GP API Snapshot"
+}

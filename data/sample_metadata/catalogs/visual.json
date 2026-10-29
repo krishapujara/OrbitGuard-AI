@@ -1,0 +1,9 @@
+{
+  "group": "visual",
+  "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=TLE",
+  "retrieved_at": "2026-10-29T03:13:31.881271+00:00",
+  "sha256": "c2b31b459780d5365c71078737c0a8314247caf020774a237df93b149735c3cb",
+  "n_bytes": 26208,
+  "line_count": 468,
+  "source": "Official CelesTrak GP API Snapshot"
+}

@@ -1,0 +1,9 @@
+{
+  "group": "gps-ops",
+  "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=gps-ops&FORMAT=TLE",
+  "retrieved_at": "2026-10-29T03:13:45.401939+00:00",
+  "sha256": "be25eab44540535a8c68dc9b13ac990cb3f484dd8068abb357690fe723086d74",
+  "n_bytes": 5376,
+  "line_count": 96,
+  "source": "Official CelesTrak GP API Snapshot"
+}

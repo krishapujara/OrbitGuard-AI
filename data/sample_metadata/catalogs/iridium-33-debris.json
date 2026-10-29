@@ -1,0 +1,9 @@
+{
+  "group": "iridium-33-debris",
+  "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=iridium-33-debris&FORMAT=TLE",
+  "retrieved_at": "2026-10-29T03:19:29.720922+00:00",
+  "sha256": "cf72b217a84b5ef8da29b38f5558c32eeebf05d7626865c95483b760a7727a61",
+  "n_bytes": 18312,
+  "line_count": 327,
+  "source": "Official CelesTrak GP API Snapshot"
+}

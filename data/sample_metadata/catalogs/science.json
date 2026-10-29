@@ -1,0 +1,9 @@
+{
+  "group": "science",
+  "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=science&FORMAT=TLE",
+  "retrieved_at": "2026-10-29T03:13:28.162155+00:00",
+  "sha256": "f30ca4915d443b90b21359931300093d95855383d52343dc19dc14e7c6e1800d",
+  "n_bytes": 7728,
+  "line_count": 138,
+  "source": "Official CelesTrak GP API Snapshot"
+}

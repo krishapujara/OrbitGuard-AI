@@ -1,0 +1,9 @@
+{
+  "group": "stations",
+  "url": "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=TLE",
+  "retrieved_at": "2026-10-29T03:13:24.074538+00:00",
+  "sha256": "f9b230d34ce0a40b6631bdfe98135ca53a6c48efbf3999c2aff7b51ccc15b13e",
+  "n_bytes": 2688,
+  "line_count": 48,
+  "source": "Official CelesTrak GP API Snapshot"
+}
